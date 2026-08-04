@@ -1,0 +1,6 @@
+{
+  "name": "FitPro AI",
+  "description": "Professional AI Gym & Fitness Tracker App with customized workouts, meal plans, exercise library, AI personal trainer, and progress tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
