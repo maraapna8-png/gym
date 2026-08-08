@@ -3,6 +3,8 @@ package com.example.repository
 import com.example.data.local.FitProDao
 import com.example.data.model.*
 import com.example.network.GeminiService
+import com.example.util.MealMacroResult
+import com.example.util.MealNutritionEstimator
 import kotlinx.coroutines.flow.Flow
 
 class FitProRepository(private val dao: FitProDao) {
@@ -58,5 +60,25 @@ class FitProRepository(private val dao: FitProDao) {
 
     suspend fun askAiTrainer(prompt: String, userProfile: UserProfile): String {
         return GeminiService.chatWithAiTrainer(prompt, userProfile)
+    }
+
+    suspend fun calculateMealMacros(mealName: String): MealMacroResult {
+        return GeminiService.calculateMealMacrosWithAi(mealName)
+    }
+
+    suspend fun generateWorkoutMusic(
+        prompt: String,
+        genre: String,
+        isShortClip: Boolean
+    ): GeneratedMusicTrack {
+        return GeminiService.generateWorkoutMusicTrack(prompt, genre, isShortClip)
+    }
+
+    suspend fun getInstantMotivationFlashLite(topic: String): String {
+        return GeminiService.getInstantMotivationFlashLite(topic)
+    }
+
+    suspend fun generateDeepProDiagnostic(userProfile: UserProfile): AiHealthReport {
+        return GeminiService.generateDeepProDiagnostic(userProfile)
     }
 }

@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
 fun FitProAppContainer(viewModel: FitProViewModel) {
     val selectedTab by viewModel.selectedTab.collectAsState()
     val activeSubScreen by viewModel.activeSubScreen.collectAsState()
+    val userProfile by viewModel.userProfile.collectAsState()
 
     var isAuthenticated by remember { mutableStateOf(true) } // Authenticated by default for instant preview
 
@@ -49,6 +50,16 @@ fun FitProAppContainer(viewModel: FitProViewModel) {
         AuthScreen(
             viewModel = viewModel,
             onLoginSuccess = { isAuthenticated = true }
+        )
+        return
+    }
+
+    if (!userProfile.isOnboardingCompleted || activeSubScreen == "ONBOARDING") {
+        OnboardingScreen(
+            viewModel = viewModel,
+            onFinishOnboarding = {
+                viewModel.navigateToSubScreen(null)
+            }
         )
         return
     }

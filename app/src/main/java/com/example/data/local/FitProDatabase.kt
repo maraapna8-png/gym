@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
         DietMeal::class,
         Achievement::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class FitProDatabase : RoomDatabase() {
@@ -55,6 +55,18 @@ abstract class FitProDatabase : RoomDatabase() {
                 INSTANCE?.let { database ->
                     scope.launch(Dispatchers.IO) {
                         populateInitialData(database.fitProDao())
+                    }
+                }
+            }
+
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+                INSTANCE?.let { database ->
+                    scope.launch(Dispatchers.IO) {
+                        val dao = database.fitProDao()
+                        if (dao.getUserProfileOnce() == null) {
+                            populateInitialData(dao)
+                        }
                     }
                 }
             }

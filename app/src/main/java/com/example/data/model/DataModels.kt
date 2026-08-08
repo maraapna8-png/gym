@@ -6,8 +6,8 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "user_profile")
 data class UserProfile(
     @PrimaryKey val id: Int = 1,
-    val fullName: String = "Alex Rivera",
-    val email: String = "alex.fit@example.com",
+    val fullName: String = "Abdullah",
+    val email: String = "abdullah@example.com",
     val profilePicUrl: String = "",
     val age: Int = 26,
     val gender: String = "Male",
@@ -16,12 +16,27 @@ data class UserProfile(
     val targetWeightKg: Float = 70f,
     val fitnessLevel: String = "Intermediate", // Beginner, Intermediate, Advanced
     val activityLevel: String = "Moderately Active",
-    val fitnessGoal: String = "Muscle Gain", // Weight Loss, Fat Loss, Muscle Gain, Strength, Endurance, Body Recomposition, General Fitness
+    val fitnessGoal: String = "Full Muscle Gain", // General Fitness, Full Muscle Gain, Train Specific Muscle, Full Body Training, Six Pack Abs, Weight Loss
+    val selectedMuscleFocus: String = "Full Body", // Chest, Biceps, Back, Legs, Abs, Shoulders, Full Body
+    val workoutLocation: String = "Gym", // "Gym" or "Home"
+    val selectedEquipmentCsv: String = "Dumbbell,Barbell,Weight Plates,Cable Machine,Bench,Pull-Up Bar",
+    val isOnboardingCompleted: Boolean = false,
+    val dailyWorkoutMinutes: Int = 60,
+    val weeklyScheduleDays: Int = 7,
     val medicalNotes: String = "None",
     val unitMetric: Boolean = true, // true for kg/cm, false for lbs/ft
     val isLogged: Boolean = true,
     val isAdmin: Boolean = false,
     val isPremium: Boolean = true
+)
+
+data class GymAppliance(
+    val id: String,
+    val name: String,
+    val category: String,
+    val description: String,
+    val targetMuscles: String,
+    val isSelectedByDefault: Boolean = false
 )
 
 @Entity(tableName = "exercises")
@@ -124,3 +139,26 @@ data class BmiResult(
     val idealWeightMaxKg: Float,
     val advice: String
 )
+
+data class GeneratedMusicTrack(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val title: String,
+    val genre: String,
+    val durationSeconds: Int,
+    val modelUsed: String, // lyria-3-clip-preview or lyria-3-pro-preview
+    val bpm: Int = 135,
+    val description: String = "",
+    val prompt: String = "",
+    val audioBase64: String? = null,
+    val createdAtMillis: Long = System.currentTimeMillis()
+)
+
+data class AiHealthReport(
+    val title: String,
+    val recoveryScorePct: Int,
+    val fatigueLevel: String,
+    val recommendedWorkoutType: String,
+    val metabolicAdvice: String,
+    val modelUsed: String = "gemini-3.1-pro-preview"
+)
+

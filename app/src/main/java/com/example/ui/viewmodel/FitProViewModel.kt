@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.FitProDatabase
 import com.example.data.model.*
 import com.example.repository.FitProRepository
+import com.example.util.MealMacroResult
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -62,12 +63,91 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
     private val _selectedDietPlan = MutableStateFlow("All")
     val selectedDietPlan: StateFlow<String> = _selectedDietPlan.asStateFlow()
 
+    val allDietMealsList: StateFlow<List<DietMeal>> = repository.allDietMeals
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val dietMeals: StateFlow<List<DietMeal>> = combine(
         repository.allDietMeals,
         _selectedDietPlan
     ) { meals, plan ->
         if (plan == "All") meals else meals.filter { it.planType.equals(plan, ignoreCase = true) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val loggedMeals: StateFlow<List<DietMeal>> = allDietMealsList
+        .map { meals -> meals.filter { it.isLoggedToday } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val consumedCalories: StateFlow<Int> = loggedMeals.map { meals -> meals.sumOf { it.calories } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val consumedProtein: StateFlow<Int> = loggedMeals.map { meals -> meals.sumOf { it.proteinG } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val consumedCarbs: StateFlow<Int> = loggedMeals.map { meals -> meals.sumOf { it.carbsG } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    val consumedFat: StateFlow<Int> = loggedMeals.map { meals -> meals.sumOf { it.fatG } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    private val _mealToastMessage = MutableStateFlow<String?>(null)
+    val mealToastMessage: StateFlow<String?> = _mealToastMessage.asStateFlow()
+
+    private val _calculatedMealResult = MutableStateFlow<MealMacroResult?>(null)
+    val calculatedMealResult: StateFlow<MealMacroResult?> = _calculatedMealResult.asStateFlow()
+
+    private val _isCalculatingMeal = MutableStateFlow(false)
+    val isCalculatingMeal: StateFlow<Boolean> = _isCalculatingMeal.asStateFlow()
+
+    fun calculateMealNutrition(mealName: String) {
+        if (mealName.isBlank()) {
+            _calculatedMealResult.value = null
+            return
+        }
+        viewModelScope.launch {
+            _isCalculatingMeal.value = true
+            val result = repository.calculateMealMacros(mealName)
+            _calculatedMealResult.value = result
+            _isCalculatingMeal.value = false
+        }
+    }
+
+    fun clearCalculatedMeal() {
+        _calculatedMealResult.value = null
+    }
+
+    fun clearMealToast() {
+        _mealToastMessage.value = null
+    }
+
+    fun toggleLogMeal(meal: DietMeal) {
+        viewModelScope.launch {
+            val updated = meal.copy(isLoggedToday = !meal.isLoggedToday)
+            repository.saveDietMeal(updated)
+            _mealToastMessage.value = if (updated.isLoggedToday) {
+                "Logged ${meal.title} (+${meal.calories} kcal) ✓"
+            } else {
+                "Removed ${meal.title} from today's log"
+            }
+        }
+    }
+
+    fun addCustomDietMeal(title: String, mealType: String, calories: Int, protein: Int, carbs: Int, fat: Int) {
+        viewModelScope.launch {
+            val customMeal = DietMeal(
+                planType = "Custom",
+                mealType = mealType,
+                title = title,
+                calories = calories,
+                proteinG = protein,
+                carbsG = carbs,
+                fatG = fat,
+                ingredients = "Custom user entry",
+                isLoggedToday = true
+            )
+            repository.saveDietMeal(customMeal)
+            _mealToastMessage.value = "Logged $title (+$calories kcal) ✓"
+        }
+    }
 
     // Water Tracker
     private val todayDateString = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -106,7 +186,7 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
     private val _chatMessages = MutableStateFlow(listOf(
         ChatMessage(
             sender = "FitPro AI Trainer",
-            message = "Hello Athlete! I'm your AI Personal Trainer. Ask me anything about workout routines, nutrition, form tips, or weight loss!",
+            message = "Hello Athlete! I'm your AI Personal Trainer powered by Gemini. Ask me anything about workout routines, nutrition, form tips, or weight loss!",
             isUser = false
         )
     ))
@@ -115,8 +195,89 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
 
+    // Music Generation (Lyria 3 Clip & Pro)
+    private val _generatedTracks = MutableStateFlow(listOf(
+        GeneratedMusicTrack(
+            title = "Heavy Lifting Cyberpunk Beat",
+            genre = "Synthwave",
+            durationSeconds = 30,
+            modelUsed = "lyria-3-clip-preview",
+            bpm = 140,
+            description = "High intensity driving bass synth created for maximum focus."
+        ),
+        GeneratedMusicTrack(
+            title = "Aggressive HIIT Cardio Pump",
+            genre = "HIIT",
+            durationSeconds = 180,
+            modelUsed = "lyria-3-pro-preview",
+            bpm = 155,
+            description = "Fast-paced cardio rhythm for explosive calorie burn."
+        )
+    ))
+    val generatedTracks: StateFlow<List<GeneratedMusicTrack>> = _generatedTracks.asStateFlow()
+
+    private val _currentPlayingTrack = MutableStateFlow<GeneratedMusicTrack?>(_generatedTracks.value.firstOrNull())
+    val currentPlayingTrack: StateFlow<GeneratedMusicTrack?> = _currentPlayingTrack.asStateFlow()
+
+    private val _isPlayingMusic = MutableStateFlow(false)
+    val isPlayingMusic: StateFlow<Boolean> = _isPlayingMusic.asStateFlow()
+
+    private val _isGeneratingMusic = MutableStateFlow(false)
+    val isGeneratingMusic: StateFlow<Boolean> = _isGeneratingMusic.asStateFlow()
+
+    // Gemini Flash Lite Quick Motivation
+    private val _instantMotivationQuote = MutableStateFlow("Unleash your inner strength today! Powered by Gemini 3.1 Flash Lite ⚡")
+    val instantMotivationQuote: StateFlow<String> = _instantMotivationQuote.asStateFlow()
+
+    // Gemini 3.1 Pro Deep Diagnostic Report
+    private val _aiHealthReport = MutableStateFlow<AiHealthReport?>(null)
+    val aiHealthReport: StateFlow<AiHealthReport?> = _aiHealthReport.asStateFlow()
+
+    private val _isAnalyzingProDiagnostic = MutableStateFlow(false)
+    val isAnalyzingProDiagnostic: StateFlow<Boolean> = _isAnalyzingProDiagnostic.asStateFlow()
+
+    // Music Actions
+    fun generateWorkoutMusic(prompt: String, genre: String, isShortClip: Boolean) {
+        viewModelScope.launch {
+            _isGeneratingMusic.value = true
+            val track = repository.generateWorkoutMusic(prompt, genre, isShortClip)
+            _generatedTracks.value = listOf(track) + _generatedTracks.value
+            _currentPlayingTrack.value = track
+            _isPlayingMusic.value = true
+            _isGeneratingMusic.value = false
+        }
+    }
+
+    fun playTrack(track: GeneratedMusicTrack) {
+        _currentPlayingTrack.value = track
+        _isPlayingMusic.value = true
+    }
+
+    fun toggleMusicPlayback() {
+        _isPlayingMusic.value = !_isPlayingMusic.value
+    }
+
+    // Gemini Flash Lite Action
+    fun fetchInstantMotivation(topic: String = "Heavy Squats") {
+        viewModelScope.launch {
+            val quote = repository.getInstantMotivationFlashLite(topic)
+            _instantMotivationQuote.value = quote
+        }
+    }
+
+    // Gemini 3.1 Pro Deep Diagnostic Action
+    fun fetchDeepProDiagnostic() {
+        viewModelScope.launch {
+            _isAnalyzingProDiagnostic.value = true
+            val report = repository.generateDeepProDiagnostic(userProfile.value)
+            _aiHealthReport.value = report
+            _isAnalyzingProDiagnostic.value = false
+        }
+    }
+
+
     // Settings
-    private val _darkTheme = MutableStateFlow(true)
+    private val _darkTheme = MutableStateFlow(false)
     val darkTheme: StateFlow<Boolean> = _darkTheme.asStateFlow()
 
     // --- Actions ---
@@ -159,6 +320,24 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
             val current = waterLog.value
             val newAmount = (current.currentMl + amountMl).coerceAtLeast(0)
             repository.updateWaterLog(current.copy(currentMl = newAmount))
+            _mealToastMessage.value = if (amountMl >= 0) "+${amountMl}ml Water Logged 💧" else "${amountMl}ml Water Adjusted"
+        }
+    }
+
+    fun setWaterGoal(goalMl: Int) {
+        viewModelScope.launch {
+            val current = waterLog.value
+            val validGoal = goalMl.coerceAtLeast(500)
+            repository.updateWaterLog(current.copy(goalMl = validGoal))
+            _mealToastMessage.value = "Daily Water Goal updated to ${validGoal}ml 🎯"
+        }
+    }
+
+    fun resetWaterIntake() {
+        viewModelScope.launch {
+            val current = waterLog.value
+            repository.updateWaterLog(current.copy(currentMl = 0))
+            _mealToastMessage.value = "Water intake reset to 0ml"
         }
     }
 
@@ -249,8 +428,50 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun updateOnboardingProfile(
+        fullName: String = "Abdullah",
+        age: Int,
+        heightCm: Float,
+        weightKg: Float,
+        targetWeightKg: Float,
+        fitnessGoal: String,
+        muscleFocus: String,
+        location: String,
+        equipmentCsv: String
+    ) {
+        viewModelScope.launch {
+            val current = userProfile.value
+            val updated = current.copy(
+                fullName = if (fullName.isNotBlank()) fullName else current.fullName,
+                age = age,
+                heightCm = heightCm,
+                weightKg = weightKg,
+                targetWeightKg = targetWeightKg,
+                fitnessGoal = fitnessGoal,
+                selectedMuscleFocus = muscleFocus,
+                workoutLocation = location,
+                selectedEquipmentCsv = equipmentCsv,
+                isOnboardingCompleted = true,
+                dailyWorkoutMinutes = 60
+            )
+            repository.saveProfile(updated)
+            _mealToastMessage.value = "Personalized 60-Min Daily Plan Ready! ⚡"
+        }
+    }
+
+    fun resetOnboarding() {
+        viewModelScope.launch {
+            val current = userProfile.value
+            repository.saveProfile(current.copy(isOnboardingCompleted = false))
+        }
+    }
+
     fun toggleTheme() {
         _darkTheme.value = !_darkTheme.value
+    }
+
+    fun setDarkTheme(enabled: Boolean) {
+        _darkTheme.value = enabled
     }
 
     fun addNewExerciseByAdmin(

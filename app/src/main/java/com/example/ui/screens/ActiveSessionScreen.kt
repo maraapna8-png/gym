@@ -17,6 +17,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.ui.components.AiCameraCoachModal
+import com.example.ui.components.ExerciseGraphicImage
 import com.example.ui.theme.AccentCyan
 import com.example.ui.theme.AccentOrange
 import com.example.ui.theme.NeonGreen
@@ -34,9 +36,18 @@ fun ActiveSessionScreen(viewModel: FitProViewModel) {
         exercises.getOrNull(currentIndex % exercises.size.coerceAtLeast(1))
     }
 
+    var showAiCameraCoach by remember { mutableStateOf(false) }
+
     val minutes = timerSec / 60
     val seconds = timerSec % 60
     val timeFormatted = String.format("%02d:%02d", minutes, seconds)
+
+    if (showAiCameraCoach && currentExercise != null) {
+        AiCameraCoachModal(
+            exercise = currentExercise,
+            onDismiss = { showAiCameraCoach = false }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -115,33 +126,62 @@ fun ActiveSessionScreen(viewModel: FitProViewModel) {
         currentExercise?.let { ex ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Surface(shape = RoundedCornerShape(8.dp), color = NeonGreen, contentColor = Color.Black) {
-                        Text(
-                            text = ex.category.uppercase(),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.ExtraBold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                            Surface(shape = RoundedCornerShape(8.dp), color = NeonGreen, contentColor = Color.Black) {
+                                Text(
+                                    text = ex.category.uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = ex.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Black,
+                                color = Color.White
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "Target: ${ex.targetMuscle}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = AccentCyan,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+
+                        // Prominent 3D exercise graphic illustration
+                        ExerciseGraphicImage(
+                            exercise = ex,
+                            size = 100.dp,
+                            showMuscleGlowTag = true
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(text = ex.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(text = "Target: ${ex.targetMuscle}", style = MaterialTheme.typography.bodySmall, color = AccentCyan)
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(text = ex.instructions, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
                     Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = ex.instructions,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -150,6 +190,22 @@ fun ActiveSessionScreen(viewModel: FitProViewModel) {
                         SessionPill("SETS", "${ex.sets}")
                         SessionPill("REPS", ex.reps)
                         SessionPill("REST", "45s")
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    OutlinedButton(
+                        onClick = { showAiCameraCoach = true },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = NeonGreen),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("btn_launch_ai_camera_session")
+                    ) {
+                        Icon(imageVector = Icons.Default.CameraAlt, contentDescription = "AI Camera", tint = NeonGreen)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("OPEN AI CAMERA FORM COACH 📷", fontWeight = FontWeight.ExtraBold)
                     }
                 }
             }

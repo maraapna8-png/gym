@@ -55,6 +55,86 @@ fun DashboardScreen(
             )
         }
 
+        // Customized 7-Day 1-Hour Weekly Schedule Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen)
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "CUSTOM 1-HOUR WEEKLY SCHEDULE",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeonGreen
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "${userProfile.fitnessGoal} (${userProfile.workoutLocation})",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        IconButton(onClick = { viewModel.navigateToSubScreen("ONBOARDING") }) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Goal", tint = AccentCyan)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = if (userProfile.workoutLocation == "Gym") {
+                            val equipList = userProfile.selectedEquipmentCsv.split(",").filter { it.isNotBlank() }
+                            "Gym Appliances Active: ${equipList.take(4).joinToString(", ")}${if (equipList.size > 4) " +${equipList.size - 4} more" else ""}"
+                        } else {
+                            "Home Setup: Pure Bodyweight Routine (No Appliances Required)"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            workoutPlans.firstOrNull()?.let { onStartWorkoutPlan(it) }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonGreen, contentColor = Color.Black),
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("btn_start_today_1hr_session")
+                    ) {
+                        Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Start")
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("START TODAY'S 60-MIN SESSION ⚡", fontWeight = FontWeight.ExtraBold)
+                    }
+                }
+            }
+        }
+
+        // AI Music Generator Card (lyria-3-clip-preview / lyria-3-pro-preview)
+        item {
+            AiMusicGeneratorCard(viewModel = viewModel)
+        }
+
+        // Gemini Intelligence Suite Card (gemini-3.1-pro-preview / gemini-3.5-flash / gemini-3.1-flash-lite-preview)
+        item {
+            GeminiIntelligenceCard(viewModel = viewModel)
+        }
+
+
         // Section Title: Today's Metrics
         item {
             Row(
@@ -135,7 +215,17 @@ fun DashboardScreen(
             }
         }
 
-        // Quick Tracker Actions (Water & Steps)
+        // Daily Water Tracker Section
+        item {
+            WaterTrackerCard(
+                waterLog = waterLog,
+                onAddWater = { viewModel.addWaterIntake(it) },
+                onSetGoal = { viewModel.setWaterGoal(it) },
+                onResetWater = { viewModel.resetWaterIntake() }
+            )
+        }
+
+        // Quick Step Tracker
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -145,7 +235,7 @@ fun DashboardScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "QUICK TRACKERS",
+                        text = "DAILY STEP TRACKER",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = NeonGreen
@@ -158,41 +248,9 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.WaterDrop, contentDescription = "Water", tint = AccentCyan)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "+ Water Intake", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        }
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(
-                                onClick = { viewModel.addWaterIntake(250) },
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.testTag("add_water_250")
-                            ) {
-                                Text("+250ml", color = AccentCyan)
-                            }
-
-                            OutlinedButton(
-                                onClick = { viewModel.addWaterIntake(500) },
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.testTag("add_water_500")
-                            ) {
-                                Text("+500ml", color = AccentCyan)
-                            }
-                        }
-                    }
-
-                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.DirectionsRun, contentDescription = "Steps", tint = NeonGreen)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "+ Log Walk/Steps", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            Text(text = "${stepLog.steps} / ${stepLog.goalSteps} Steps", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                         }
 
                         Button(

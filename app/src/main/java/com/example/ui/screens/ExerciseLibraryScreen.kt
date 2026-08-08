@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Search
@@ -18,7 +19,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.model.Exercise
+import com.example.ui.components.AiCameraCoachModal
 import com.example.ui.components.ExerciseCardItem
+import com.example.ui.components.ExerciseGraphicImage
 import com.example.ui.theme.NeonGreen
 import com.example.ui.viewmodel.FitProViewModel
 
@@ -104,16 +107,39 @@ fun ExerciseLibraryScreen(viewModel: FitProViewModel) {
         }
     }
 
+    var exerciseForCameraCoach by remember { mutableStateOf<Exercise?>(null) }
+
+    if (exerciseForCameraCoach != null) {
+        AiCameraCoachModal(
+            exercise = exerciseForCameraCoach!!,
+            onDismiss = { exerciseForCameraCoach = null }
+        )
+    }
+
     // Exercise Detail Modal / Dialog
     selectedExerciseForDetail?.let { exercise ->
         AlertDialog(
             onDismissRequest = { selectedExerciseForDetail = null },
             confirmButton = {
-                Button(
-                    onClick = { selectedExerciseForDetail = null },
-                    colors = ButtonDefaults.buttonColors(containerColor = NeonGreen, contentColor = Color.Black)
-                ) {
-                    Text("CLOSE", fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val current = exercise
+                            selectedExerciseForDetail = null
+                            exerciseForCameraCoach = current
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = NeonGreen, contentColor = Color.Black)
+                    ) {
+                        Icon(imageVector = Icons.Default.CameraAlt, contentDescription = "Camera Coach")
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("AI CAMERA COACH", fontWeight = FontWeight.Bold)
+                    }
+
+                    TextButton(
+                        onClick = { selectedExerciseForDetail = null }
+                    ) {
+                        Text("CLOSE", fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             title = {
@@ -126,7 +152,20 @@ fun ExerciseLibraryScreen(viewModel: FitProViewModel) {
             text = {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     item {
-                        Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            ExerciseGraphicImage(
+                                exercise = exercise,
+                                size = 140.dp,
+                                showMuscleGlowTag = true
+                            )
+                        }
+                    }
+
+                    item {
+                        Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
                             Text(
                                 text = "Category: ${exercise.category} • Muscle: ${exercise.targetMuscle}",
                                 style = MaterialTheme.typography.labelMedium,
@@ -135,6 +174,10 @@ fun ExerciseLibraryScreen(viewModel: FitProViewModel) {
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                    }
+
+                    item {
+                        Text("Equipment: ${exercise.equipment} • ${exercise.sets} Sets × ${exercise.reps}", style = MaterialTheme.typography.bodySmall, color = Color.White)
                     }
 
                     item {

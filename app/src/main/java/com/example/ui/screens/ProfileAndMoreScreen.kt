@@ -119,11 +119,24 @@ fun ProfileAndMoreScreen(viewModel: FitProViewModel) {
                             }
                         }
 
-                        IconButton(
-                            onClick = { showEditProfileDialog = true },
-                            modifier = Modifier.testTag("edit_profile_btn")
-                        ) {
-                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Profile", tint = NeonGreen)
+                        Row {
+                            val darkTheme by viewModel.darkTheme.collectAsState()
+                            IconButton(
+                                onClick = { viewModel.toggleTheme() },
+                                modifier = Modifier.testTag("toggle_theme_profile_btn")
+                            ) {
+                                Icon(
+                                    imageVector = if (darkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                    contentDescription = "Toggle Light/Dark Theme",
+                                    tint = NeonGreen
+                                )
+                            }
+                            IconButton(
+                                onClick = { showEditProfileDialog = true },
+                                modifier = Modifier.testTag("edit_profile_btn")
+                            ) {
+                                Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Profile", tint = NeonGreen)
+                            }
                         }
                     }
 
@@ -137,6 +150,60 @@ fun ProfileAndMoreScreen(viewModel: FitProViewModel) {
                         ProfileStatItem("Height", "${userProfile.heightCm.toInt()} cm")
                         ProfileStatItem("Weight", "${userProfile.weightKg} kg")
                         ProfileStatItem("Target", "${userProfile.targetWeightKg} kg")
+                    }
+                }
+            }
+        }
+
+        // Onboarding & Gym Equipment Setup Banner Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen)
+            ) {
+                Column(modifier = Modifier.padding(18.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "PERSONAL TRAINING SETUP",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = NeonGreen
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "${userProfile.fitnessGoal} • ${userProfile.workoutLocation}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = if (userProfile.workoutLocation == "Gym") {
+                                    val count = userProfile.selectedEquipmentCsv.split(",").filter { it.isNotBlank() }.size
+                                    "$count Gym Appliances Selected (Dumbbells, Rods, Machines)"
+                                } else {
+                                    "Zero Equipment Home Bodyweight Routine"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        Button(
+                            onClick = { viewModel.resetOnboarding() },
+                            colors = ButtonDefaults.buttonColors(containerColor = NeonGreen, contentColor = Color.Black),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.testTag("btn_reconfigure_onboarding")
+                        ) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit")
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("CHANGE", fontWeight = FontWeight.ExtraBold)
+                        }
                     }
                 }
             }
@@ -231,6 +298,7 @@ fun ProfileAndMoreScreen(viewModel: FitProViewModel) {
                         value = name,
                         onValueChange = { name = it },
                         label = { Text("Full Name") },
+                        placeholder = { Text("Abdullah") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -240,12 +308,14 @@ fun ProfileAndMoreScreen(viewModel: FitProViewModel) {
                             value = weight,
                             onValueChange = { weight = it },
                             label = { Text("Weight (kg)") },
+                            placeholder = { Text("75") },
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = targetWeight,
                             onValueChange = { targetWeight = it },
                             label = { Text("Target (kg)") },
+                            placeholder = { Text("70") },
                             modifier = Modifier.weight(1f)
                         )
                     }
