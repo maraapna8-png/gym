@@ -45,7 +45,7 @@ fun OnboardingScreen(
 ) {
     val userProfile by viewModel.userProfile.collectAsState()
 
-    var currentStep by remember { mutableIntStateOf(1) } // 1: Bio Metrics, 2: Training Goal, 3: Location & Gym Equipment, 4: Summary
+    var currentStep by remember { mutableIntStateOf(1) } // 1: Bio Metrics, 2: Training Goal
 
     var nameText by remember { mutableStateOf("") }
     var ageText by remember { mutableStateOf("") }
@@ -93,12 +93,7 @@ fun OnboardingScreen(
                             letterSpacing = 1.sp
                         )
                         Text(
-                            text = when (currentStep) {
-                                1 -> "Step 1: Your Body Metrics"
-                                2 -> "Step 2: Choose Your Fitness Goal"
-                                3 -> if (workoutLocation == "Gym") "Step 3: Select Gym Equipment (20 Available)" else "Step 3: Home Setup"
-                                else -> "Step 4: Custom Weekly Plan"
-                            },
+                            text = if (currentStep == 1) "Step 1: Your Body Metrics" else "Step 2: Choose Your Fitness Goal",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -131,7 +126,7 @@ fun OnboardingScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Step $currentStep of 4",
+                        text = "Step $currentStep of 2",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -139,7 +134,7 @@ fun OnboardingScreen(
 
                     Button(
                         onClick = {
-                            if (currentStep < 4) {
+                            if (currentStep < 2) {
                                 currentStep++
                             } else {
                                 // Save onboarding setup
@@ -157,7 +152,7 @@ fun OnboardingScreen(
                                     targetWeightKg = targetWeight,
                                     fitnessGoal = selectedGoal,
                                     muscleFocus = selectedMuscleFocus,
-                                    location = workoutLocation,
+                                    location = "Gym",
                                     equipmentCsv = equipCsv
                                 )
                                 onFinishOnboarding()
@@ -170,7 +165,7 @@ fun OnboardingScreen(
                             .testTag("btn_onboarding_next")
                     ) {
                         Text(
-                            text = if (currentStep == 4) "START WORKOUT PLAN 🚀" else "NEXT STEP ➔",
+                            text = if (currentStep == 2) "START WORKOUT PLAN 🚀" else "NEXT STEP ➔",
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 15.sp
                         )
@@ -188,7 +183,7 @@ fun OnboardingScreen(
         ) {
             // Step Progress Bar
             LinearProgressIndicator(
-                progress = currentStep / 4f,
+                progress = currentStep / 2f,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(8.dp)
@@ -207,7 +202,7 @@ fun OnboardingScreen(
                     weightText = weightText, onWeightChange = { weightText = it },
                     targetWeightText = targetWeightText, onTargetWeightChange = { targetWeightText = it }
                 )
-                2 -> StepGoalSelection(
+                else -> StepGoalSelection(
                     goals = goalsList,
                     selectedGoal = selectedGoal,
                     onGoalSelect = { selectedGoal = it },
@@ -217,22 +212,6 @@ fun OnboardingScreen(
                     weightText = weightText,
                     targetWeightText = targetWeightText,
                     onTargetWeightChange = { targetWeightText = it }
-                )
-                3 -> StepLocationAndEquipment(
-                    location = workoutLocation,
-                    onLocationChange = { workoutLocation = it },
-                    selectedEquipment = selectedEquipmentIds
-                )
-                4 -> StepSummaryAndSchedule(
-                    name = if (nameText.isNotBlank()) nameText else "Abdullah",
-                    age = ageText.toIntOrNull() ?: 18,
-                    height = heightText.toFloatOrNull() ?: 178f,
-                    weight = weightText.toFloatOrNull() ?: 75f,
-                    targetWeight = targetWeightText.toFloatOrNull() ?: 70f,
-                    goal = selectedGoal,
-                    muscle = selectedMuscleFocus,
-                    location = workoutLocation,
-                    equipmentCount = selectedEquipmentIds.size
                 )
             }
         }
@@ -544,208 +523,107 @@ fun StepGoalSelection(
 }
 
 @Composable
-fun StepLocationAndEquipment(
-    location: String,
-    onLocationChange: (String) -> Unit,
+fun StepEquipmentSelection(
     selectedEquipment: MutableList<String>
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Location Selector Toggle (Gym vs Home)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = if (location == "Gym") NeonGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
-                border = androidx.compose.foundation.BorderStroke(
-                    width = if (location == "Gym") 2.dp else 1.dp,
-                    color = if (location == "Gym") NeonGreen else MaterialTheme.colorScheme.outline
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onLocationChange("Gym") }
-                    .testTag("location_gym")
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FitnessCenter,
-                        contentDescription = "Gym",
-                        tint = if (location == "Gym") NeonGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "WORK OUT AT GYM",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (location == "Gym") NeonGreen else MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
+            Text(
+                text = "SELECT GYM APPLIANCES (${selectedEquipment.size}/20 Selected)",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = NeonGreen
+            )
 
-            Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = if (location == "Home") AccentCyan.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
-                border = androidx.compose.foundation.BorderStroke(
-                    width = if (location == "Home") 2.dp else 1.dp,
-                    color = if (location == "Home") AccentCyan else MaterialTheme.colorScheme.outline
-                ),
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onLocationChange("Home") }
-                    .testTag("location_home")
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = "Home",
-                        tint = if (location == "Home") AccentCyan else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "WORK OUT AT HOME",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (location == "Home") AccentCyan else MaterialTheme.colorScheme.onSurface
-                    )
+            TextButton(
+                onClick = {
+                    if (selectedEquipment.size == GymEquipmentData.ALL_20_EQUIPMENT.size) {
+                        selectedEquipment.clear()
+                    } else {
+                        selectedEquipment.clear()
+                        selectedEquipment.addAll(GymEquipmentData.ALL_20_EQUIPMENT.map { it.name })
+                    }
                 }
+            ) {
+                Text("Select All / Reset", fontSize = 12.sp, color = AccentCyan)
             }
         }
 
-        if (location == "Home") {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, AccentCyan.copy(alpha = 0.4f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        text = "🏠 Home Bodyweight Training Mode",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = AccentCyan
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "No gym appliances or heavy equipment required! We will build effective zero-equipment bodyweight workouts (Pushups, Squats, Planks, Lunges, Burpees) perfect for home space.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            // Gym Equipment Selection Grid (20 Products)
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "SELECT GYM APPLIANCES (${selectedEquipment.size}/20 Selected)",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = NeonGreen
-                    )
-
-                    TextButton(
-                        onClick = {
-                            if (selectedEquipment.size == GymEquipmentData.ALL_20_EQUIPMENT.size) {
-                                selectedEquipment.clear()
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(GymEquipmentData.ALL_20_EQUIPMENT) { appliance ->
+                val isChecked = selectedEquipment.contains(appliance.name)
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (isChecked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surface,
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = if (isChecked) 2.dp else 1.dp,
+                        color = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (isChecked) {
+                                selectedEquipment.remove(appliance.name)
                             } else {
-                                selectedEquipment.clear()
-                                selectedEquipment.addAll(GymEquipmentData.ALL_20_EQUIPMENT.map { it.name })
+                                selectedEquipment.add(appliance.name)
                             }
                         }
-                    ) {
-                        Text("Select All / Reset", fontSize = 12.sp, color = AccentCyan)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxSize()
+                        .testTag("equip_item_${appliance.id}")
                 ) {
-                    items(GymEquipmentData.ALL_20_EQUIPMENT) { appliance ->
-                        val isChecked = selectedEquipment.contains(appliance.name)
-                        Surface(
-                            shape = RoundedCornerShape(16.dp),
-                            color = if (isChecked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surface,
-                            border = androidx.compose.foundation.BorderStroke(
-                                width = if (isChecked) 2.dp else 1.dp,
-                                color = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    if (isChecked) {
-                                        selectedEquipment.remove(appliance.name)
-                                    } else {
-                                        selectedEquipment.add(appliance.name)
-                                    }
-                                }
-                                .testTag("equip_item_${appliance.id}")
+                    Column(
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = getEquipmentIcon(appliance.id),
-                                        contentDescription = appliance.name,
-                                        tint = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.size(22.dp)
-                                    )
+                            Icon(
+                                imageVector = getEquipmentIcon(appliance.id),
+                                contentDescription = appliance.name,
+                                tint = if (isChecked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp)
+                            )
 
-                                    Checkbox(
-                                        checked = isChecked,
-                                        onCheckedChange = { checked ->
-                                            if (checked) selectedEquipment.add(appliance.name)
-                                            else selectedEquipment.remove(appliance.name)
-                                        },
-                                        colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary, checkmarkColor = MaterialTheme.colorScheme.onPrimary)
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Text(
-                                    text = appliance.name,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    maxLines = 1
-                                )
-
-                                Text(
-                                    text = appliance.targetMuscles,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 10.sp,
-                                    maxLines = 1
-                                )
-                            }
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = { checked ->
+                                    if (checked) selectedEquipment.add(appliance.name)
+                                    else selectedEquipment.remove(appliance.name)
+                                },
+                                colors = CheckboxDefaults.colors(checkedColor = MaterialTheme.colorScheme.primary, checkmarkColor = MaterialTheme.colorScheme.onPrimary)
+                            )
                         }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = appliance.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1
+                        )
+
+                        Text(
+                            text = appliance.targetMuscles,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 10.sp,
+                            maxLines = 1
+                        )
                     }
                 }
             }
