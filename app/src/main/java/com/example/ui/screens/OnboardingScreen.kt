@@ -143,7 +143,7 @@ fun OnboardingScreen(
                                 currentStep++
                             } else {
                                 // Save onboarding setup
-                                val age = ageText.toIntOrNull() ?: 26
+                                val age = ageText.toIntOrNull() ?: 18
                                 val height = heightText.toFloatOrNull() ?: 178f
                                 val weight = weightText.toFloatOrNull() ?: 75f
                                 val targetWeight = targetWeightText.toFloatOrNull() ?: 70f
@@ -225,7 +225,7 @@ fun OnboardingScreen(
                 )
                 4 -> StepSummaryAndSchedule(
                     name = if (nameText.isNotBlank()) nameText else "Abdullah",
-                    age = ageText.toIntOrNull() ?: 26,
+                    age = ageText.toIntOrNull() ?: 18,
                     height = heightText.toFloatOrNull() ?: 178f,
                     weight = weightText.toFloatOrNull() ?: 75f,
                     targetWeight = targetWeightText.toFloatOrNull() ?: 70f,
@@ -290,7 +290,7 @@ fun StepBioMetrics(
                     value = ageText,
                     onValueChange = onAgeChange,
                     label = { Text("Your Age (Years)") },
-                    placeholder = { Text("26") },
+                    placeholder = { Text("18") },
                     leadingIcon = { Icon(imageVector = Icons.Default.Cake, contentDescription = "Age") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,

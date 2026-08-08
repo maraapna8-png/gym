@@ -9,7 +9,7 @@ data class UserProfile(
     val fullName: String = "Abdullah",
     val email: String = "abdullah@example.com",
     val profilePicUrl: String = "",
-    val age: Int = 26,
+    val age: Int = 18,
     val gender: String = "Male",
     val heightCm: Float = 178f,
     val weightKg: Float = 75f,
