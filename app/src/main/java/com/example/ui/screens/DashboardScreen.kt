@@ -30,6 +30,7 @@ fun DashboardScreen(
     onStartWorkoutPlan: (com.example.data.model.WorkoutPlan) -> Unit
 ) {
     val userProfile by viewModel.userProfile.collectAsState()
+    val darkTheme by viewModel.darkTheme.collectAsState()
     val waterLog by viewModel.waterLog.collectAsState()
     val stepLog by viewModel.stepLog.collectAsState()
     val workoutPlans by viewModel.workoutPlans.collectAsState()
@@ -49,6 +50,8 @@ fun DashboardScreen(
                 userName = userProfile.fullName,
                 motto = "Push past your limits today. Consistency breeds champion strength!",
                 streakDays = 7,
+                isDarkTheme = darkTheme,
+                onToggleTheme = { viewModel.toggleTheme() },
                 onStartWorkout = {
                     workoutPlans.firstOrNull()?.let { onStartWorkoutPlan(it) }
                 }
@@ -225,45 +228,12 @@ fun DashboardScreen(
             )
         }
 
-        // Quick Step Tracker
+        // Daily Live Step Tracker
         item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "DAILY STEP TRACKER",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = NeonGreen
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.DirectionsRun, contentDescription = "Steps", tint = NeonGreen)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "${stepLog.steps} / ${stepLog.goalSteps} Steps", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                        }
-
-                        Button(
-                            onClick = { viewModel.addSteps(1000) },
-                            colors = ButtonDefaults.buttonColors(containerColor = NeonGreen, contentColor = Color.Black),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.testTag("add_1000_steps")
-                        ) {
-                            Text("+1,000 Steps", fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
+            LiveStepTrackerCard(
+                stepLog = stepLog,
+                onAddSteps = { viewModel.addSteps(it) }
+            )
         }
 
         // Section Title: Recommended Workout
@@ -346,6 +316,19 @@ fun DashboardScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                if (log.notes.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(imageVector = Icons.Default.Mic, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = log.notes.replace("\n", " "),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = NeonGreen,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
                             }
                         }
 

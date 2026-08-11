@@ -27,7 +27,11 @@ data class UserProfile(
     val unitMetric: Boolean = true, // true for kg/cm, false for lbs/ft
     val isLogged: Boolean = true,
     val isAdmin: Boolean = false,
-    val isPremium: Boolean = true
+    val isPremium: Boolean = true,
+    val workoutReminderEnabled: Boolean = true,
+    val workoutReminderTime: String = "08:00",
+    val mealReminderEnabled: Boolean = true,
+    val mealReminderTime: String = "13:00"
 )
 
 data class GymAppliance(
@@ -80,7 +84,16 @@ data class WorkoutLog(
     val dateMillis: Long = System.currentTimeMillis(),
     val durationMinutes: Int,
     val caloriesBurned: Int,
-    val exercisesCompleted: Int
+    val exercisesCompleted: Int,
+    val notes: String = ""
+)
+
+@Entity(tableName = "weight_logs")
+data class WeightLog(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val dateMillis: Long = System.currentTimeMillis(),
+    val dateString: String, // e.g. "Aug 05" or "Mon"
+    val weightKg: Float
 )
 
 @Entity(tableName = "water_logs")
@@ -145,11 +158,12 @@ data class GeneratedMusicTrack(
     val title: String,
     val genre: String,
     val durationSeconds: Int,
-    val modelUsed: String, // lyria-3-clip-preview or lyria-3-pro-preview
+    val modelUsed: String, // lyria-3-clip-preview or lyria-3-pro-preview or YouTube
     val bpm: Int = 135,
     val description: String = "",
     val prompt: String = "",
     val audioBase64: String? = null,
+    val youtubeUrl: String? = null,
     val createdAtMillis: Long = System.currentTimeMillis()
 )
 

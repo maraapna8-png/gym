@@ -13,6 +13,7 @@ class FitProRepository(private val dao: FitProDao) {
     val allExercises: Flow<List<Exercise>> = dao.getAllExercises()
     val allWorkoutPlans: Flow<List<WorkoutPlan>> = dao.getAllWorkoutPlans()
     val allWorkoutLogs: Flow<List<WorkoutLog>> = dao.getAllWorkoutLogs()
+    val allWeightLogs: Flow<List<WeightLog>> = dao.getAllWeightLogs()
     val allDietMeals: Flow<List<DietMeal>> = dao.getAllDietMeals()
     val allAchievements: Flow<List<Achievement>> = dao.getAllAchievements()
 
@@ -40,6 +41,8 @@ class FitProRepository(private val dao: FitProDao) {
 
     suspend fun logCompletedWorkout(log: WorkoutLog) = dao.insertWorkoutLog(log)
 
+    suspend fun logWeight(log: WeightLog) = dao.insertWeightLog(log)
+
     suspend fun updateWaterLog(waterLog: WaterLog) = dao.insertOrUpdateWaterLog(waterLog)
 
     suspend fun updateStepLog(stepLog: StepLog) = dao.insertOrUpdateStepLog(stepLog)
@@ -51,9 +54,19 @@ class FitProRepository(private val dao: FitProDao) {
     suspend fun generateAiWorkout(
         userProfile: UserProfile,
         equipment: String,
-        timeMin: Int
+        timeMin: Int,
+        userGoal: String = userProfile.fitnessGoal,
+        weeklyAvailabilityDays: Int = 4,
+        focusArea: String = "Full Body"
     ): WorkoutPlan {
-        val aiPlan = GeminiService.generateAiWorkoutPlan(userProfile, equipment, timeMin)
+        val aiPlan = GeminiService.generateAiWorkoutPlan(
+            user = userProfile,
+            availableEquipment = equipment,
+            workoutTimeMinutes = timeMin,
+            userGoal = userGoal,
+            weeklyAvailabilityDays = weeklyAvailabilityDays,
+            focusArea = focusArea
+        )
         dao.insertWorkoutPlan(aiPlan)
         return aiPlan
     }

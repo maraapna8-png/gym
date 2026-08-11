@@ -38,6 +38,8 @@ fun HeroBannerCard(
     userName: String,
     motto: String,
     streakDays: Int,
+    isDarkTheme: Boolean = true,
+    onToggleTheme: (() -> Unit)? = null,
     onStartWorkout: () -> Unit
 ) {
     Card(
@@ -98,29 +100,50 @@ fun HeroBannerCard(
                         )
                     }
 
-                    // Streak Badge
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = Color.Black.copy(alpha = 0.6f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (onToggleTheme != null) {
+                            IconButton(
+                                onClick = onToggleTheme,
+                                modifier = Modifier
+                                    .padding(end = 6.dp)
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.Black.copy(alpha = 0.5f))
+                                    .testTag("dashboard_theme_toggle_btn")
+                            ) {
+                                Icon(
+                                    imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
+                                    contentDescription = "Toggle Light/Dark Theme",
+                                    tint = NeonGreen,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+
+                        // Streak Badge
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.Black.copy(alpha = 0.6f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, NeonGreen)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.LocalFireDepartment,
-                                contentDescription = "Streak",
-                                tint = AccentOrange,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "$streakDays DAY STREAK",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocalFireDepartment,
+                                    contentDescription = "Streak",
+                                    tint = AccentOrange,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "$streakDays DAY STREAK",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }

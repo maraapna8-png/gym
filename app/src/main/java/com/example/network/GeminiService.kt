@@ -219,7 +219,10 @@ object GeminiService {
     suspend fun generateAiWorkoutPlan(
         user: UserProfile,
         availableEquipment: String,
-        workoutTimeMinutes: Int
+        workoutTimeMinutes: Int,
+        userGoal: String = user.fitnessGoal,
+        weeklyAvailabilityDays: Int = 4,
+        focusArea: String = "Full Body"
     ): WorkoutPlan = withContext(Dispatchers.IO) {
         val apiKey = try {
             BuildConfig.GEMINI_API_KEY
@@ -230,12 +233,12 @@ object GeminiService {
         if (apiKey.isBlank() || apiKey == "MY_GEMINI_API_KEY") {
             // Smart AI Local Generation Fallback
             return@withContext WorkoutPlan(
-                title = "AI Personalized ${user.fitnessGoal} Plan",
+                title = "AI $userGoal ($focusArea)",
                 category = user.fitnessLevel,
-                type = "AI Custom Split",
-                description = "Customized ${workoutTimeMinutes}-minute routine tailored for ${user.fitnessGoal} using $availableEquipment.",
+                type = "$weeklyAvailabilityDays-Day $focusArea Split",
+                description = "Customized $workoutTimeMinutes-minute $focusArea routine tailored for $userGoal ($weeklyAvailabilityDays days/wk availability) using $availableEquipment.",
                 durationMin = workoutTimeMinutes,
-                totalExercises = 6,
+                totalExercises = if (workoutTimeMinutes <= 30) 4 else 6,
                 caloriesBurned = (workoutTimeMinutes * 8.5).toInt(),
                 difficulty = user.fitnessLevel,
                 isCustom = true
@@ -244,20 +247,23 @@ object GeminiService {
 
         try {
             val prompt = """
-                You are FitPro AI Master Fitness Coach. Create a personalized workout plan for a user with these stats:
-                Age: ${user.age}, Gender: ${user.gender}, Height: ${user.heightCm} cm, Weight: ${user.weightKg} kg,
-                Fitness Level: ${user.fitnessLevel}, Fitness Goal: ${user.fitnessGoal},
-                Available Equipment: $availableEquipment, Target Workout Time: $workoutTimeMinutes minutes.
-                
-                Respond in valid JSON with format:
+                You are FitPro AI Master Fitness Coach powered by Gemini. Create a highly customized, science-backed workout plan for a user with these stats and availability:
+                - Age: ${user.age}, Gender: ${user.gender}, Height: ${user.heightCm} cm, Weight: ${user.weightKg} kg
+                - Fitness Level: ${user.fitnessLevel}
+                - Primary Goal: $userGoal
+                - Schedule Availability: $weeklyAvailabilityDays days per week, $workoutTimeMinutes minutes per session
+                - Target Focus Area: $focusArea
+                - Available Equipment: $availableEquipment
+
+                Respond strictly in valid JSON format matching this schema:
                 {
                    "title": "Short Punchy Workout Name",
                    "category": "${user.fitnessLevel}",
-                   "type": "AI Custom Split",
-                   "description": "Short 2 sentence overview of why this plan works for the user.",
+                   "type": "$weeklyAvailabilityDays-Day $focusArea Split",
+                   "description": "2-sentence overview explaining why this structure suits their goal and availability.",
                    "durationMin": $workoutTimeMinutes,
                    "totalExercises": 6,
-                   "caloriesBurned": 380,
+                   "caloriesBurned": ${(workoutTimeMinutes * 8.0).toInt()},
                    "difficulty": "${user.fitnessLevel}"
                 }
             """.trimIndent()

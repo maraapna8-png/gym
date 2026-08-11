@@ -46,7 +46,11 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
     ) { exercises, query, category ->
         exercises.filter { ex ->
             val matchCategory = category == "All" || ex.category.equals(category, ignoreCase = true)
-            val matchQuery = query.isBlank() || ex.name.contains(query, ignoreCase = true) || ex.targetMuscle.contains(query, ignoreCase = true)
+            val matchQuery = query.isBlank() || 
+                ex.name.contains(query, ignoreCase = true) || 
+                ex.targetMuscle.contains(query, ignoreCase = true) ||
+                ex.category.contains(query, ignoreCase = true) ||
+                ex.equipment.contains(query, ignoreCase = true)
             matchCategory && matchQuery
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -57,6 +61,10 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
 
     // Workout Logs
     val workoutLogs: StateFlow<List<WorkoutLog>> = repository.allWorkoutLogs
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Weight Logs
+    val weightLogs: StateFlow<List<WeightLog>> = repository.allWeightLogs
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Diet Meals
@@ -180,6 +188,9 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
     private val _currentExerciseIndex = MutableStateFlow(0)
     val currentExerciseIndex: StateFlow<Int> = _currentExerciseIndex.asStateFlow()
 
+    private val _activeSessionNotes = MutableStateFlow<List<String>>(emptyList())
+    val activeSessionNotes: StateFlow<List<String>> = _activeSessionNotes.asStateFlow()
+
     private var timerJob: Job? = null
 
     // AI Chat Coach
@@ -195,8 +206,18 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
     private val _isAiLoading = MutableStateFlow(false)
     val isAiLoading: StateFlow<Boolean> = _isAiLoading.asStateFlow()
 
-    // Music Generation (Lyria 3 Clip & Pro)
+    // Music Generation (Lyria 3 Clip & Pro & YouTube Tracks)
     private val _generatedTracks = MutableStateFlow(listOf(
+        GeneratedMusicTrack(
+            id = "yt-qk5cd5_eLdc",
+            title = "Ultimate Gym Motivation Beat ⚡",
+            genre = "Heavy Cardio / Gym Pump",
+            durationSeconds = 240,
+            modelUsed = "YouTube Track",
+            bpm = 150,
+            description = "Featured workout soundtrack & motivation energy mix.",
+            youtubeUrl = "https://www.youtube.com/watch?v=qk5cd5_eLdc&list=PPSV&t=4s"
+        ),
         GeneratedMusicTrack(
             title = "Heavy Lifting Cyberpunk Beat",
             genre = "Synthwave",
@@ -248,6 +269,21 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
+    fun addCustomYouTubeTrack(title: String, url: String) {
+        val track = GeneratedMusicTrack(
+            title = if (title.isBlank()) "Custom YouTube Gym Song" else title,
+            genre = "YouTube Import",
+            durationSeconds = 210,
+            modelUsed = "YouTube Track",
+            bpm = 145,
+            description = "Custom user imported workout track.",
+            youtubeUrl = url
+        )
+        _generatedTracks.value = listOf(track) + _generatedTracks.value
+        _currentPlayingTrack.value = track
+        _isPlayingMusic.value = true
+    }
+
     fun playTrack(track: GeneratedMusicTrack) {
         _currentPlayingTrack.value = track
         _isPlayingMusic.value = true
@@ -277,7 +313,8 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
 
 
     // Settings
-    private val _darkTheme = MutableStateFlow(false)
+    private val prefs = application.getSharedPreferences("fitpro_prefs", android.content.Context.MODE_PRIVATE)
+    private val _darkTheme = MutableStateFlow(prefs.getBoolean("dark_theme", true))
     val darkTheme: StateFlow<Boolean> = _darkTheme.asStateFlow()
 
     // --- Actions ---
@@ -355,6 +392,7 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
         _activePlan.value = plan
         _currentExerciseIndex.value = 0
         _sessionTimerSeconds.value = 0
+        _activeSessionNotes.value = emptyList()
         _isSessionRunning.value = true
         _activeSubScreen.value = "SESSION"
 
@@ -368,6 +406,22 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
         }
+    }
+
+    fun addVoiceNoteToSession(note: String) {
+        if (note.isNotBlank()) {
+            _activeSessionNotes.value = _activeSessionNotes.value + note.trim()
+        }
+    }
+
+    fun removeVoiceNoteFromSession(index: Int) {
+        if (index in _activeSessionNotes.value.indices) {
+            _activeSessionNotes.value = _activeSessionNotes.value.toMutableList().apply { removeAt(index) }
+        }
+    }
+
+    fun clearVoiceNotes() {
+        _activeSessionNotes.value = emptyList()
     }
 
     fun triggerRestTimer(seconds: Int = 45) {
@@ -392,13 +446,18 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
         if (plan != null) {
             val durationMin = (_sessionTimerSeconds.value / 60).coerceAtLeast(1)
             val cal = plan.caloriesBurned
+            val notesCombined = if (_activeSessionNotes.value.isNotEmpty()) {
+                _activeSessionNotes.value.joinToString("\n• ", prefix = "• ")
+            } else ""
+
             viewModelScope.launch {
                 repository.logCompletedWorkout(
                     WorkoutLog(
                         workoutTitle = plan.title,
                         durationMinutes = durationMin,
                         caloriesBurned = cal,
-                        exercisesCompleted = plan.totalExercises
+                        exercisesCompleted = plan.totalExercises,
+                        notes = notesCombined
                     )
                 )
             }
@@ -406,10 +465,23 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
         _activeSubScreen.value = null
     }
 
-    fun generateAiWorkoutPlan(equipment: String, timeMinutes: Int) {
+    fun generateAiWorkoutPlan(
+        equipment: String,
+        timeMinutes: Int,
+        userGoal: String = userProfile.value.fitnessGoal,
+        weeklyAvailabilityDays: Int = 4,
+        focusArea: String = "Full Body"
+    ) {
         viewModelScope.launch {
             _isAiLoading.value = true
-            repository.generateAiWorkout(userProfile.value, equipment, timeMinutes)
+            repository.generateAiWorkout(
+                userProfile = userProfile.value,
+                equipment = equipment,
+                timeMin = timeMinutes,
+                userGoal = userGoal,
+                weeklyAvailabilityDays = weeklyAvailabilityDays,
+                focusArea = focusArea
+            )
             _isAiLoading.value = false
         }
     }
@@ -467,11 +539,14 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun toggleTheme() {
-        _darkTheme.value = !_darkTheme.value
+        val next = !_darkTheme.value
+        _darkTheme.value = next
+        prefs.edit().putBoolean("dark_theme", next).apply()
     }
 
     fun setDarkTheme(enabled: Boolean) {
         _darkTheme.value = enabled
+        prefs.edit().putBoolean("dark_theme", enabled).apply()
     }
 
     fun addNewExerciseByAdmin(
@@ -523,5 +598,19 @@ class FitProViewModel(application: Application) : AndroidViewModel(application) 
             idealWeightMaxKg = String.format(Locale.US, "%.1f", maxIdeal).toFloat(),
             advice = advice
         )
+    }
+
+    fun logWeightEntry(weightKg: Float, dateLabel: String = "Today") {
+        viewModelScope.launch {
+            repository.logWeight(
+                WeightLog(
+                    dateMillis = System.currentTimeMillis(),
+                    dateString = dateLabel,
+                    weightKg = weightKg
+                )
+            )
+            val current = userProfile.value
+            repository.saveProfile(current.copy(weightKg = weightKg))
+        }
     }
 }

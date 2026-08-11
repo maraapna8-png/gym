@@ -265,20 +265,33 @@ fun ProfileAndMoreScreen(viewModel: FitProViewModel) {
     // Edit Profile Modal
     if (showEditProfileDialog) {
         var name by remember { mutableStateOf(userProfile.fullName) }
+        var ageText by remember { mutableStateOf(userProfile.age.toString()) }
+        var heightText by remember { mutableStateOf(userProfile.heightCm.toInt().toString()) }
         var weight by remember { mutableStateOf(userProfile.weightKg.toString()) }
         var targetWeight by remember { mutableStateOf(userProfile.targetWeightKg.toString()) }
         var selectedGoal by remember { mutableStateOf(userProfile.fitnessGoal) }
 
-        val goals = listOf("Muscle Gain", "Weight Loss", "Fat Loss", "Endurance", "Strength")
+        val goals = listOf("General Fitness", "Full Muscle Gain", "Train Specific Muscle", "Full Body Training", "Six Pack Abs", "Weight Loss")
 
         AlertDialog(
             onDismissRequest = { showEditProfileDialog = false },
             confirmButton = {
                 Button(
                     onClick = {
+                        val newAge = ageText.toIntOrNull() ?: userProfile.age
+                        val newHeight = heightText.toFloatOrNull() ?: userProfile.heightCm
                         val newW = weight.toFloatOrNull() ?: userProfile.weightKg
                         val newTW = targetWeight.toFloatOrNull() ?: userProfile.targetWeightKg
-                        viewModel.updateProfile(userProfile.copy(fullName = name, weightKg = newW, targetWeightKg = newTW, fitnessGoal = selectedGoal))
+                        viewModel.updateProfile(
+                            userProfile.copy(
+                                fullName = name,
+                                age = newAge,
+                                heightCm = newHeight,
+                                weightKg = newW,
+                                targetWeightKg = newTW,
+                                fitnessGoal = selectedGoal
+                            )
+                        )
                         showEditProfileDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = NeonGreen, contentColor = Color.Black)
@@ -302,6 +315,23 @@ fun ProfileAndMoreScreen(viewModel: FitProViewModel) {
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = ageText,
+                            onValueChange = { ageText = it },
+                            label = { Text("Age (yrs)") },
+                            placeholder = { Text("18") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = heightText,
+                            onValueChange = { heightText = it },
+                            label = { Text("Height (cm)") },
+                            placeholder = { Text("178") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(

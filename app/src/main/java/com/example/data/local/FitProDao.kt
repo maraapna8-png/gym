@@ -53,6 +53,16 @@ interface FitProDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertWorkoutLog(log: WorkoutLog)
 
+    // Weight Logs
+    @Query("SELECT * FROM weight_logs ORDER BY dateMillis ASC")
+    fun getAllWeightLogs(): Flow<List<WeightLog>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWeightLog(log: WeightLog)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertWeightLogs(logs: List<WeightLog>)
+
     // Water Logs
     @Query("SELECT * FROM water_logs WHERE dateString = :dateString LIMIT 1")
     fun getWaterLogByDate(dateString: String): Flow<WaterLog?>

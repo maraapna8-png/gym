@@ -135,18 +135,32 @@ fun WorkoutsScreen(
 
     // AI Generator Dialog
     if (showAiGeneratorDialog) {
-        var selectedEquipment by remember { mutableStateOf("Dumbbells & Bodyweight") }
-        var selectedDuration by remember { mutableStateOf(45) }
+        val userProfile by viewModel.userProfile.collectAsState()
 
-        val equipmentList = listOf("Full Gym Barbell/Machines", "Dumbbells & Bodyweight", "Bodyweight Only", "Kettlebells & Cable")
+        var selectedGoal by remember { mutableStateOf(userProfile?.fitnessGoal ?: "Muscle Building") }
+        var selectedAvailabilityDays by remember { mutableStateOf(4) }
+        var selectedDuration by remember { mutableStateOf(45) }
+        var selectedFocusArea by remember { mutableStateOf("Full Body") }
+        var selectedEquipment by remember { mutableStateOf("Dumbbells & Bodyweight") }
+
+        val goals = listOf("Muscle Building", "Fat Loss & Shred", "Pure Strength", "Endurance & HIIT", "Athletic Mobility")
+        val daysList = listOf(2, 3, 4, 5, 6)
         val durations = listOf(20, 30, 45, 60)
+        val focusAreas = listOf("Full Body", "Upper Body Push/Pull", "Lower Body & Glutes", "Core & HIIT")
+        val equipmentList = listOf("Full Gym (Barbells & Cable)", "Dumbbells & Bench", "Bodyweight Only", "Kettlebells & Bands")
 
         AlertDialog(
             onDismissRequest = { if (!isAiLoading) showAiGeneratorDialog = false },
             confirmButton = {
                 Button(
                     onClick = {
-                        viewModel.generateAiWorkoutPlan(selectedEquipment, selectedDuration)
+                        viewModel.generateAiWorkoutPlan(
+                            equipment = selectedEquipment,
+                            timeMinutes = selectedDuration,
+                            userGoal = selectedGoal,
+                            weeklyAvailabilityDays = selectedAvailabilityDays,
+                            focusArea = selectedFocusArea
+                        )
                         showAiGeneratorDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = NeonGreen, contentColor = Color.Black),
@@ -155,7 +169,7 @@ fun WorkoutsScreen(
                     if (isAiLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.Black)
                     } else {
-                        Text("GENERATE PLAN", fontWeight = FontWeight.Bold)
+                        Text("GENERATE AI ROUTINE ✨", fontWeight = FontWeight.ExtraBold)
                     }
                 }
             },
@@ -168,43 +182,101 @@ fun WorkoutsScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = "AI", tint = NeonGreen)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Configure AI Workout", fontWeight = FontWeight.Bold)
+                    Text("Gemini Workout Generator", fontWeight = FontWeight.Bold)
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Select Available Equipment:", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    equipmentList.forEach { eq ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            RadioButton(
-                                selected = selectedEquipment == eq,
-                                onClick = { selectedEquipment = eq },
-                                colors = RadioButtonDefaults.colors(selectedColor = NeonGreen)
-                            )
-                            Text(text = eq, style = MaterialTheme.typography.bodyMedium)
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.heightIn(max = 420.dp)
+                ) {
+                    item {
+                        Text("1. Primary Goal:", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = NeonGreen)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(goals) { goal ->
+                                FilterChip(
+                                    selected = selectedGoal == goal,
+                                    onClick = { selectedGoal = goal },
+                                    label = { Text(goal, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = NeonGreen,
+                                        selectedLabelColor = Color.Black
+                                    )
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text("Workout Duration (Minutes):", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        durations.forEach { d ->
-                            FilterChip(
-                                selected = selectedDuration == d,
-                                onClick = { selectedDuration = d },
-                                label = { Text("${d}m") },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = NeonGreen,
-                                    selectedLabelColor = Color.Black
+                    item {
+                        Text("2. Weekly Availability (Days/Week):", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = NeonGreen)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            daysList.forEach { days ->
+                                FilterChip(
+                                    selected = selectedAvailabilityDays == days,
+                                    onClick = { selectedAvailabilityDays = days },
+                                    label = { Text("$days Days/wk", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = NeonGreen,
+                                        selectedLabelColor = Color.Black
+                                    )
                                 )
-                            )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text("3. Session Time Availability:", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = NeonGreen)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            durations.forEach { d ->
+                                FilterChip(
+                                    selected = selectedDuration == d,
+                                    onClick = { selectedDuration = d },
+                                    label = { Text("${d} min", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = NeonGreen,
+                                        selectedLabelColor = Color.Black
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text("4. Target Focus Area:", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = NeonGreen)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            items(focusAreas) { area ->
+                                FilterChip(
+                                    selected = selectedFocusArea == area,
+                                    onClick = { selectedFocusArea = area },
+                                    label = { Text(area, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = NeonGreen,
+                                        selectedLabelColor = Color.Black
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    item {
+                        Text("5. Available Equipment:", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = NeonGreen)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        equipmentList.forEach { eq ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                RadioButton(
+                                    selected = selectedEquipment == eq,
+                                    onClick = { selectedEquipment = eq },
+                                    colors = RadioButtonDefaults.colors(selectedColor = NeonGreen)
+                                )
+                                Text(text = eq, style = MaterialTheme.typography.bodySmall, color = Color.White)
+                            }
                         }
                     }
                 }

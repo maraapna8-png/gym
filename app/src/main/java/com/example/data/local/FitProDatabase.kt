@@ -16,12 +16,13 @@ import kotlinx.coroutines.launch
         Exercise::class,
         WorkoutPlan::class,
         WorkoutLog::class,
+        WeightLog::class,
         WaterLog::class,
         StepLog::class,
         DietMeal::class,
         Achievement::class
     ],
-    version = 2,
+    version = 5,
     exportSchema = false
 )
 abstract class FitProDatabase : RoomDatabase() {
@@ -79,6 +80,21 @@ abstract class FitProDatabase : RoomDatabase() {
                 dao.insertAchievements(PrepopulatedData.INITIAL_ACHIEVEMENTS)
                 dao.insertOrUpdateWaterLog(WaterLog(dateString = getCurrentDateString(), currentMl = 1250, goalMl = 3000))
                 dao.insertOrUpdateStepLog(StepLog(dateString = getCurrentDateString(), steps = 4820, goalSteps = 10000))
+
+                // Initial 7-day weight trend data
+                val now = System.currentTimeMillis()
+                val dayMs = 24 * 60 * 60 * 1000L
+                dao.insertWeightLogs(
+                    listOf(
+                        WeightLog(dateMillis = now - 6 * dayMs, dateString = "Mon", weightKg = 78.5f),
+                        WeightLog(dateMillis = now - 5 * dayMs, dateString = "Tue", weightKg = 78.2f),
+                        WeightLog(dateMillis = now - 4 * dayMs, dateString = "Wed", weightKg = 78.0f),
+                        WeightLog(dateMillis = now - 3 * dayMs, dateString = "Thu", weightKg = 77.8f),
+                        WeightLog(dateMillis = now - 2 * dayMs, dateString = "Fri", weightKg = 77.6f),
+                        WeightLog(dateMillis = now - 1 * dayMs, dateString = "Sat", weightKg = 77.5f),
+                        WeightLog(dateMillis = now, dateString = "Sun", weightKg = 77.2f)
+                    )
+                )
             }
 
             private fun getCurrentDateString(): String {
